@@ -15,7 +15,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/srv', glob('srv/*.srv')),  # SRV 파일 추가
         ('share/' + package_name + '/launch', glob('launch/*.py')),  # launch 폴더의 파일들 추가
-        (os.path.join('share', package_name, 'jsons'), glob('llm_pkg/jsons/*')) # jsons 파일 추가
+        ('share/' + package_name + '/jsons', glob('jsons/*.json')) # jsons 파일 추가
     ],
     install_requires=[
         'setuptools', 

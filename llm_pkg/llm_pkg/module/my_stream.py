@@ -4,8 +4,7 @@ import numpy as np
 from eff_word_net.engine import HotwordDetector
 from eff_word_net import RATE
 
-NoParameterFunction = Callable[[],None]
-AudioFrameFunction = Callable[[],np.array]
+AudioFrameCallback = Callable[[np.ndarray], None]
 
 class CustomAudioStream :
     """
@@ -14,13 +13,20 @@ class CustomAudioStream :
 
     It tries to add sliding window to audio streams
     """
+
+    """
+    [REFACTORING]
+    콜백 함수 추가 -> 프레임이 완성되면 바로 callback 함수를 호출하도록 수정
+
+    """
     def __init__(
         self,
         open_stream:Callable[[],None],
         close_stream:Callable[[],None],
         get_next_frame:Callable[[],np.array],
         window_length_secs = 1,
-        sliding_window_secs:float = 1/8
+        sliding_window_secs:float = 1/8,
+        frame_callback: AudioFrameCallback = None,
         ):
 
         self._open_stream = open_stream
@@ -32,15 +38,35 @@ class CustomAudioStream :
         self._out_audio = np.zeros(self._window_size) #blank 1 sec audio
         print("Initial S",self._out_audio.shape)
 
+        # [REFACTORING]
+        self._callback = frame_callback
+        self._running = False
+
     def start_stream(self):
         self._out_audio = np.zeros(self._window_size)
         self._open_stream()
+        self._running = True
+
         for i in range(RATE//self._sliding_window_size -1):
             self.getFrame()
+        
+        # [REFACTORING]
+        import threading
+
+        def stream_loop():
+            while self._running:
+                frame = self._get_next_frame()
+                self._append_frame(frame)
+                if self._callback:
+                    self._callback(self._out_audio)
+
+        threading.Thread(target=stream_loop, daemon=True).start()
 
     def close_stream(self):
         self._close_stream()
         self._out_audio = np.zeros(self._window_size)
+        # [REFACTORING]
+        self._running = False
 
     def getFrame(self):
         """
@@ -63,6 +89,15 @@ class CustomAudioStream :
         #print(self._out_audio.shape)
 
         return self._out_audio
+    
+    # [REFACTORING]
+    def _append_frame(self, new_frame):
+        #슬라이딩 윈도우
+        assert new_frame.shape == (self._sliding_window_size,)
+        self._out_audio = np.append(
+                self._out_audio[self._sliding_window_size:],
+            new_frame 
+        )
 
 class SimpleMicStream(CustomAudioStream) :
 
@@ -70,7 +105,7 @@ class SimpleMicStream(CustomAudioStream) :
     Implements mic stream with sliding window, 
     implemented by inheriting CustomAudioStream
     """
-    def __init__(self,window_length_secs=1, sliding_window_secs:float=1/8, device_index:int=0):
+    def __init__(self,window_length_secs=1, sliding_window_secs:float=1/8, device_index:int=0, frame_callback: AudioFrameCallback = None):
         self.p=pyaudio.PyAudio()
 
         CHUNK = int(sliding_window_secs*RATE)
@@ -94,5 +129,6 @@ class SimpleMicStream(CustomAudioStream) :
                 np.frombuffer(mic_stream.read(CHUNK,exception_on_overflow = False),dtype=np.int16) 
                 ),
                  window_length_secs=window_length_secs,
-                sliding_window_secs=sliding_window_secs
+                sliding_window_secs=sliding_window_secs,
+                frame_callback=frame_callback,
         )

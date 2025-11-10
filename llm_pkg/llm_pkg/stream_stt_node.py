@@ -1,120 +1,207 @@
-import asyncio
-import json
-import time
-import requests
-import websockets
+import queue
+import re
+import sys
+
+from google.cloud import speech
+
 import pyaudio
-import rclpy
-from rclpy.node import Node
-from std_msgs.msg import String
-import os
 
-API_BASE = "https://openapi.vito.ai"
+# Audio recording parameters
+RATE = 16000
+CHUNK = int(RATE / 10)  # 100ms
 
-SAMPLE_RATE = 8000  # 오디오 샘플링 속도
-BYTES_PER_SAMPLE = 2  # 한 샘플의 크기 2바이트
-CHUNK_SIZE = 1024  # 마이크에서 읽어올 버퍼 크기
+class MicrophoneStream:
+    """Opens a recording stream as a generator yielding the audio chunks."""
 
+    def __init__(self: object, rate: int = RATE, chunk: int = CHUNK) -> None:
+        """The audio -- and generator -- is guaranteed to be on the main thread."""
+        self._rate = rate
+        self._chunk = chunk
 
-class MicrophoneStreamer:
-    def __init__(self):
-        self.pyaudio = pyaudio.PyAudio()
-        self.stream = self.pyaudio.open(
+        # Create a thread-safe buffer of audio data
+        self._buff = queue.Queue()
+        self.closed = True
+
+    def __enter__(self: object) -> object:
+        self._audio_interface = pyaudio.PyAudio()
+        self._audio_stream = self._audio_interface.open(
             format=pyaudio.paInt16,
+            # The API currently only supports 1-channel (mono) audio
+            # https://goo.gl/z757pE
             channels=1,
-            rate=SAMPLE_RATE,
+            rate=self._rate,
             input=True,
-            frames_per_buffer=CHUNK_SIZE,
-            input_device_index=None,
+            frames_per_buffer=self._chunk,
+            # Run the audio stream asynchronously to fill the buffer object.
+            # This is necessary so that the input device's buffer doesn't
+            # overflow while the calling thread makes network requests, etc.
+            stream_callback=self._fill_buffer,
         )
 
-    def __enter__(self):
+        self.closed = False
+
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.stream.stop_stream()
-        self.stream.close()
-        self.pyaudio.terminate()
+    def __exit__(
+        self: object,
+        type: object,
+        value: object,
+        traceback: object,
+    ) -> None:
+        """Closes the stream, regardless of whether the connection was lost or not."""
+        self._audio_stream.stop_stream()
+        self._audio_stream.close()
+        self.closed = True
+        # Signal the generator to terminate so that the client's
+        # streaming_recognize method will not block the process termination.
+        self._buff.put(None)
+        self._audio_interface.terminate()
 
-    async def read(self):
-        await asyncio.sleep(CHUNK_SIZE / (SAMPLE_RATE * BYTES_PER_SAMPLE))
-        return self.stream.read(CHUNK_SIZE, exception_on_overflow=False)
+    def _fill_buffer(
+        self: object,
+        in_data: object,
+        frame_count: int,
+        time_info: object,
+        status_flags: object,
+    ) -> object:
+        """Continuously collect data from the audio stream, into the buffer.
 
+        Args:
+            in_data: The audio data as a bytes object
+            frame_count: The number of frames captured
+            time_info: The time information
+            status_flags: The status flags
 
-class StreamSttNode(Node):
-    def __init__(self, client_id, client_secret):
-        super().__init__('stream_stt_node')
-        self.publisher_ = self.create_publisher(String, 'stt_stream', 10)
-        self.client_id = client_id
-        self.client_secret = client_secret
-        self._token = None
+        Returns:
+            The audio data as a bytes object
+        """
+        self._buff.put(in_data)
+        return None, pyaudio.paContinue
 
-    @property
-    def token(self):
-        if self._token is None or self._token["expire_at"] < time.time():
-            resp = requests.post(
-                API_BASE + "/v1/authenticate",
-                data={"client_id": self.client_id, "client_secret": self.client_secret},
-            )
-            resp.raise_for_status()
-            self._token = resp.json()
-        return self._token["access_token"]
+    def generator(self: object) -> object:
+        """Generates audio chunks from the stream of audio data in chunks.
 
-    async def streaming_transcribe(self):
-        config = {
-            "sample_rate": str(SAMPLE_RATE),
-            "encoding": "LINEAR16",
-            "use_itn": "true",
-            "use_disfluency_filter": "false",
-            "use_profanity_filter": "false",
-            # keyword Boosting : 비슷한 단어이면 이게 가중치 더 높음
-            "keywords": "멈춰:4.0, 따라와:4.0, 이리와:4.0, 티비:4.0, 에어컨:4.0"
-        }
-        STREAMING_ENDPOINT = f"wss://{API_BASE.split('://')[1]}/v1/transcribe:streaming?" + "&".join(f"{k}={v}" for k, v in config.items())
-        conn_kwargs = {"extra_headers": [("Authorization", f"bearer {self.token}")]}
+        Args:
+            self: The MicrophoneStream object
 
-        async with websockets.connect(STREAMING_ENDPOINT, **conn_kwargs) as websocket:
-            await asyncio.gather(self.streamer(websocket), self.transcriber(websocket))
+        Returns:
+            A generator that outputs audio chunks.
+        """
+        while not self.closed:
+            # Use a blocking get() to ensure there's at least one chunk of
+            # data, and stop iteration if the chunk is None, indicating the
+            # end of the audio stream.
+            chunk = self._buff.get()
+            if chunk is None:
+                return
+            data = [chunk]
 
-    async def streamer(self, websocket):
-        with MicrophoneStreamer() as mic:
+            # Now consume whatever other data's still buffered.
             while True:
-                buff = await mic.read()
-                if not buff:
+                try:
+                    chunk = self._buff.get(block=False)
+                    if chunk is None:
+                        return
+                    data.append(chunk)
+                except queue.Empty:
                     break
-                await websocket.send(buff)
-            await websocket.send("EOS")
 
-    async def transcriber(self, websocket):
-        async for msg in websocket:
-            msg = json.loads(msg)
-            if msg.get("final"):
-                text = msg["alternatives"][0]["text"]
-                self.get_logger().info(f'Publishing: "{text}"')
-
-                # ROS 2 퍼블리시
-                ros_msg = String()
-                ros_msg.data = text
-                self.publisher_.publish(ros_msg)
+            yield b"".join(data)
 
 
-def main(args=None):
-    rclpy.init(args=args)
-    
-    CLIENT_ID = os.getenv("CLIENT_ID")
-    CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+def listen_print_loop(responses: object) -> str:
+    """Iterates through server responses and prints them.
 
-    node = StreamSttNode(CLIENT_ID, CLIENT_SECRET)
+    The responses passed is a generator that will block until a response
+    is provided by the server.
 
-    loop = asyncio.get_event_loop()
-    try:
-        loop.run_until_complete(node.streaming_transcribe())
-    except KeyboardInterrupt:
-        node.get_logger().info('Shutting down...')
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
+    Each response may contain multiple results, and each result may contain
+    multiple alternatives; for details, see https://goo.gl/tjCPAU.  Here we
+    print only the transcription for the top alternative of the top result.
+
+    In this case, responses are provided for interim results as well. If the
+    response is an interim one, print a line feed at the end of it, to allow
+    the next result to overwrite it, until the response is a final one. For the
+    final one, print a newline to preserve the finalized transcription.
+
+    Args:
+        responses: List of server responses
+
+    Returns:
+        The transcribed text.
+    """
+    num_chars_printed = 0
+    for response in responses:
+        if not response.results:
+            continue
+
+        # The `results` list is consecutive. For streaming, we only care about
+        # the first result being considered, since once it's `is_final`, it
+        # moves on to considering the next utterance.
+        result = response.results[0]
+        if not result.alternatives:
+            continue
+
+        # Display the transcription of the top alternative.
+        transcript = result.alternatives[0].transcript
+
+        # Display interim results, but with a carriage return at the end of the
+        # line, so subsequent lines will overwrite them.
+        #
+        # If the previous result was longer than this one, we need to print
+        # some extra spaces to overwrite the previous result
+        overwrite_chars = " " * (num_chars_printed - len(transcript))
+
+        if not result.is_final:
+            sys.stdout.write(transcript + overwrite_chars + "\r")
+            sys.stdout.flush()
+
+            num_chars_printed = len(transcript)
+
+        else:
+            print(transcript + overwrite_chars)
+
+            # Exit recognition if any of the transcribed phrases could be
+            # one of our keywords.
+            if re.search(r"\b(exit|quit)\b", transcript, re.I):
+                print("Exiting..")
+                break
+
+            num_chars_printed = 0
+
+    return transcript
 
 
-if __name__ == '__main__':
+def main() -> None:
+    """Transcribe speech from audio file."""
+    # See http://g.co/cloud/speech/docs/languages
+    # for a list of supported languages.
+    language_code = "ko-KR"
+
+    client = speech.SpeechClient()
+    config = speech.RecognitionConfig(
+        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+        sample_rate_hertz=RATE,
+        language_code=language_code,
+        enable_automatic_punctuation=True,
+    )
+
+    streaming_config = speech.StreamingRecognitionConfig(
+        config=config, interim_results=True
+    )
+
+    with MicrophoneStream(RATE, CHUNK) as stream:
+        audio_generator = stream.generator()
+        requests = (
+            speech.StreamingRecognizeRequest(audio_content=content)
+            for content in audio_generator
+        )
+
+        responses = client.streaming_recognize(streaming_config, requests)
+
+        # Now, put the transcription responses to use.
+        listen_print_loop(responses)
+
+
+if __name__ == "__main__":
     main()

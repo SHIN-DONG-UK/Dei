@@ -19,15 +19,9 @@ class C104_Tts():
                 voice="alloy",
                 input=text,
             )
-<<<<<<< HEAD
-<<<<<<< HEAD
+
             file_path = "/home/c104/S12P11C104/ros/src/AI/llm_pkg/audio/tts.mp3"
-=======
-            file_path = "/home/god/integration_ws/src/llm_pkg/audio/tts.mp3"
->>>>>>> a4fa93f (AI : tts class update)
-=======
-            file_path = "/home/c104/S12P11C104/ros/src/AI/llm_pkg/audio/tts.mp3"
->>>>>>> 9aad033 (AI : 경로 수정)
+            
             with open(file_path, "wb") as f:
                 f.write(res.content)
 

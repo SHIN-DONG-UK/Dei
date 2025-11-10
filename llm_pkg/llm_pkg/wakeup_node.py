@@ -8,7 +8,6 @@ from rclpy.node import Node
 from std_msgs.msg import String
 
 from ament_index_python.packages import get_package_share_directory
-import os
 
 class WakeupPublisher(Node):
     def __init__(self):
@@ -24,7 +23,7 @@ class WakeupPublisher(Node):
         stop_hw = HotwordDetector(
             hotword="stop",
             model=base_model,
-            reference_file = os.path.join(pkg_share_dir, 'jsons', 'stop_ref.json'),
+            reference_file = pkg_share_dir + '/jsons' + '/stop_ref.json',
             # reference_file="../llm_pkg/jsons/stop_ref.json",
             threshold=0.71,
             relaxation_time=2,
@@ -34,7 +33,7 @@ class WakeupPublisher(Node):
         follow_hw = HotwordDetector(
             hotword="follow",
             model=base_model,
-            reference_file = os.path.join(pkg_share_dir, 'jsons', 'follow_ref.json'),
+            reference_file = pkg_share_dir + '/jsons' + '/follow_ref.json',
             # reference_file="llm_pkg/jsons/follow_ref.json",
             threshold=0.71,
             relaxation_time=2,
@@ -43,7 +42,7 @@ class WakeupPublisher(Node):
         come_hw = HotwordDetector(
             hotword="come",
             model=base_model,
-            reference_file = os.path.join(pkg_share_dir, 'jsons', 'come_ref.json'),
+            reference_file = pkg_share_dir + '/jsons' + '/come_ref.json',
             # reference_file="llm_pkg/jsons/come_ref.json",
             threshold=0.71,
             relaxation_time=2,
@@ -52,7 +51,7 @@ class WakeupPublisher(Node):
         daya_hw = HotwordDetector(
             hotword="daya",
             model=base_model,
-            reference_file = os.path.join(pkg_share_dir, 'jsons', 'daya_ref.json'),
+            reference_file = pkg_share_dir + '/jsons' + '/daya_ref.json',
             # reference_file="llm_pkg/jsons/daya_ref.json",
             threshold=0.71,
             relaxation_time=2,

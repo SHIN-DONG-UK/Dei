@@ -1,3 +1,10 @@
+#!/home/god/robot_ws/src/llm_pkg/llm_pkg/venv_stt/bin/python3
+# ros2
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import QoSProfile
+from std_msgs.msg import String
+# stt
 import queue
 import re
 import sys
@@ -170,6 +177,25 @@ def listen_print_loop(responses: object) -> str:
             num_chars_printed = 0
 
     return transcript
+
+# class StreamSttNode(Node):
+    
+#     def __init__(self):
+#         super().__init__('stream_stt_node')
+#         qos_profile = QoSProfile(depth=10)
+#         self.stream_stt_publisher = self.create_publisher(String, 'stt_stream', qos_profile)
+#         self.daya_subsciber = self.create_subscription(
+#             String,
+#             'daya_topic',
+#             self.subscribe_daya,
+#             qos_profile)
+        
+
+
+#     def subscribe_daya(self, msg):
+
+
+
 
 
 def main() -> None:

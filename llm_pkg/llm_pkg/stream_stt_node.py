@@ -38,11 +38,13 @@ class MicrophoneStream:
             channels=1,
             rate=self._rate,
             input=True,
+            output=False, # 추가
             frames_per_buffer=self._chunk,
             # Run the audio stream asynchronously to fill the buffer object.
             # This is necessary so that the input device's buffer doesn't
             # overflow while the calling thread makes network requests, etc.
             stream_callback=self._fill_buffer,
+            input_device_index=None
         )
 
         self.closed = False
@@ -84,7 +86,7 @@ class MicrophoneStream:
         """
         self._buff.put(in_data)
         return None, pyaudio.paContinue
-
+    
     def generator(self: object) -> object:
         """Generates audio chunks from the stream of audio data in chunks.
 
@@ -92,7 +94,9 @@ class MicrophoneStream:
             self: The MicrophoneStream object
 
         Returns:
-            A generator that outputs audio chunks.
+            generator 객체 
+            (오디오 청크를 리턴하는 generator 객체임 
+            -> yeild로 for-loop이나 next가 호출될 때마다 리턴)
         """
         while not self.closed:
             # Use a blocking get() to ensure there's at least one chunk of
@@ -178,56 +182,95 @@ def listen_print_loop(responses: object) -> str:
 
     return transcript
 
-# class StreamSttNode(Node):
+class StreamSttNode(Node):
     
-#     def __init__(self):
-#         super().__init__('stream_stt_node')
-#         qos_profile = QoSProfile(depth=10)
-#         self.stream_stt_publisher = self.create_publisher(String, 'stt_stream', qos_profile)
-#         self.daya_subsciber = self.create_subscription(
-#             String,
-#             'daya_topic',
-#             self.subscribe_daya,
-#             qos_profile)
-        
+    def __init__(self):
+        ########## ROS 2 ###################
+        super().__init__('stream_stt_node')
+        qos_profile = QoSProfile(depth=10)
+        self.stream_stt_publisher = self.create_publisher(String, 'stt_stream', qos_profile)
+        self.daya_subsciber = self.create_subscription(
+            String,
+            'hotword',
+            self.subscribe_daya,
+            qos_profile)
+        ####################################
+
+        ######## google-speech #############
+        # language_code = "ko-KR"
+        # self.client = speech.SpeechClient()
+        # config = speech.RecognitionConfig(
+        #     encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+        #     sample_rate_hertz=RATE,
+        #     language_code=language_code,
+        #     enable_automatic_punctuation=True,
+        # )
+
+        # self.streaming_config = speech.StreamingRecognitionConfig(
+        #     config=config,
+        #     interim_results=True,
+        #     single_utterance=True,
+        # )
+        ####################################
+
+    """
+    [설명]
+    daya 호출 -> stream generator -> stt 수행
+    """
+    def subscribe_daya(self, msg):
+        self.get_logger().info(f"Hotword received: {msg.data}")
+        if msg.data == 'daya':
+            text = String()
+
+            language_code = "ko-KR"
+            client = speech.SpeechClient()
+            config = speech.RecognitionConfig(
+                encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+                sample_rate_hertz=RATE,
+                language_code=language_code,
+                enable_automatic_punctuation=True,
+            )
+
+            streaming_config = speech.StreamingRecognitionConfig(
+                config=config,
+                interim_results=True,
+                single_utterance=True,
+            )
+
+            with MicrophoneStream(RATE, CHUNK) as stream:
+                audio_generator = stream.generator()
+                requests = (
+                    speech.StreamingRecognizeRequest(audio_content=content)
+                    for content in audio_generator
+                )
+
+                responses = client.streaming_recognize(streaming_config, requests)
+
+                print("== 음성 인식 시작 ==")
+                for response in responses:
+                    for result in response.results:
+                        print("실시간 텍스트:", result.alternatives[0].transcript)
+                        if result.is_final:
+                            print("최종 텍스트:", result.alternatives[0].transcript)
+                            stream.__exit__(None, None, None)
+                            
+
+                # text.data = responses
+
+                # self.get_logger().info(f'Published message: {text.data}')
 
 
-#     def subscribe_daya(self, msg):
-
-
-
-
-
-def main() -> None:
-    """Transcribe speech from audio file."""
-    # See http://g.co/cloud/speech/docs/languages
-    # for a list of supported languages.
-    language_code = "ko-KR"
-
-    client = speech.SpeechClient()
-    config = speech.RecognitionConfig(
-        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-        sample_rate_hertz=RATE,
-        language_code=language_code,
-        enable_automatic_punctuation=True,
-    )
-
-    streaming_config = speech.StreamingRecognitionConfig(
-        config=config, interim_results=True
-    )
-
-    with MicrophoneStream(RATE, CHUNK) as stream:
-        audio_generator = stream.generator()
-        requests = (
-            speech.StreamingRecognizeRequest(audio_content=content)
-            for content in audio_generator
-        )
-
-        responses = client.streaming_recognize(streaming_config, requests)
-
-        # Now, put the transcription responses to use.
-        listen_print_loop(responses)
-
+            
+def main(args=None):
+    rclpy.init(args=args)
+    node = StreamSttNode()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info('Keyboard Interrupt (SIGINT)')
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == "__main__":
     main()

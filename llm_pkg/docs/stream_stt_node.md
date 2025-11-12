@@ -81,3 +81,8 @@ for response in responses:
 - 현재 generator를 종료하는 코드가 없기 때문에, 한 번만 daya를 subscription 후 blocking
 - subscribe callback 함수가 blocking되어 다음 'daya'를 sub할 수 없음
 - is_final flag를 맞으면 `__exit()__`을 호출해서 generator를 종료시키면 되지 않을까? => 정답
+
+
+## 문제 상황2
+- 'daya'를 반복 호출했을 때 stt가 중첩되는 문제 발생 -> 먹통
+- subscribe_daya가 진행되는 동안 'daya'가 들어오면 앞선 STT를 중단하고 새로 STT를 시작해야 함

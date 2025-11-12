@@ -29,7 +29,7 @@ class WakeupPublisher(Node):
         qos_profile = QoSProfile(depth=10)
         self.hotword_publisher = self.create_publisher(String, 'hotword', qos_profile)
         # self.publisher_user_command = self.create_publisher(String, 'user_command', 1)
-        # self.timer_ = self.create_timer(0.02, self.timer_callback)
+        # self.timer_ = self.create_timer(0.1, self.timer_callback)
 
         pkg_share_dir = get_package_share_directory('llm_pkg')
         
@@ -99,22 +99,11 @@ class WakeupPublisher(Node):
     #     result = self.multi_hotword_detector.findBestMatch(frame)
     #     if(None not in result):
     #         msg = String()
-    #         command_msg = String()
-    #         msg.data = result[0].hotword
-
-    #         if msg.data == "daya":
-    #             self.publisher_daya.publish(msg)
-    #         else:
-    #             if msg.data == "come":
-    #                 command_msg.data = 'Come'
-    #                 # self.publisher_user_command.publish(command_msg)
-    #             elif msg.data == "stop":
-    #                 command_msg.data = 'Stop'
-    #                 # self.publisher_user_command.publish(command_msg)
-    #             elif msg.data == "follow":
-    #                 command_msg.data = 'Follow'
-    #                 # self.publisher_user_command.publish(command_msg)
-    #         self.get_logger().info(f"Detected: {result[0].hotword}")
+    #         hotword = result[0].hotword
+    #         msg.data = hotword
+    #         self.hotword_publisher.publish(msg)
+            
+    #         self.get_logger().info(f"Detected: {hotword}")
 
 
 def main(args=None):

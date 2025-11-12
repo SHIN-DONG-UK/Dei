@@ -185,7 +185,6 @@ def listen_print_loop(responses: object) -> str:
 class StreamSttNode(Node):
     
     def __init__(self):
-        ########## ROS 2 ###################
         super().__init__('stream_stt_node')
         qos_profile = QoSProfile(depth=10)
         self.stream_stt_publisher = self.create_publisher(String, 'stt_stream', qos_profile)
@@ -194,24 +193,6 @@ class StreamSttNode(Node):
             'hotword',
             self.subscribe_daya,
             qos_profile)
-        ####################################
-
-        ######## google-speech #############
-        # language_code = "ko-KR"
-        # self.client = speech.SpeechClient()
-        # config = speech.RecognitionConfig(
-        #     encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-        #     sample_rate_hertz=RATE,
-        #     language_code=language_code,
-        #     enable_automatic_punctuation=True,
-        # )
-
-        # self.streaming_config = speech.StreamingRecognitionConfig(
-        #     config=config,
-        #     interim_results=True,
-        #     single_utterance=True,
-        # )
-        ####################################
 
     """
     [설명]
@@ -253,14 +234,8 @@ class StreamSttNode(Node):
                         if result.is_final:
                             print("최종 텍스트:", result.alternatives[0].transcript)
                             stream.__exit__(None, None, None)
-                            
-
-                # text.data = responses
-
-                # self.get_logger().info(f'Published message: {text.data}')
 
 
-            
 def main(args=None):
     rclpy.init(args=args)
     node = StreamSttNode()

@@ -252,13 +252,20 @@ class StreamSttNode(Node):
                     if stop_event.is_set():
                         stream.__exit__(None, None, None)
                         break
-
+                    
+                    if response.speech_event_type and response.speech_event_type == 1:
+                        print("==============================================")
+                        print("<음성 중단> 더 이상 CHUNK를 생성하지 않습니다.")
+                        print("==============================================")
+                        stream.__exit__(None, None, None)
+                        
                     for result in response.results:
-                        print("실시간 텍스트:", result.alternatives[0].transcript)
+                        print("[실시간 텍스트]:", result.alternatives[0].transcript)
                         if result.is_final:
-                            print("최종 텍스트:", result.alternatives[0].transcript)
+                            print("[최종 텍스트]:", result.alternatives[0].transcript)
                             stream.__exit__(None, None, None)
                             return
+                        
             except Exception as e:
                 print("STT 중 오류:", e)
 

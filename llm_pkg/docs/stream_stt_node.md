@@ -82,6 +82,7 @@ for response in responses:
 - 현재 generator를 종료하는 코드가 없기 때문에, 한 번만 daya를 subscription 후 blocking
 - subscribe callback 함수가 blocking되어 다음 'daya'를 sub할 수 없음
 - is_final flag를 맞으면 `__exit()__`을 호출해서 generator를 종료시키면 되지 않을까? => 정답
+> 해결완료
 
 
 ## 문제2
@@ -102,3 +103,24 @@ for response in responses:
 - `stt_thread` -> STT 실행 스레드
 - `stt_stop_event` -> 기존 STT 중단 신호
 - `subscribe_daya()` -> hotword 수신, STT 스레드 제어
+
+>해결 완료
+
+## 문제3
+### 상황
+- 'daya'를 호출해놓고 아무말도 안하면 blocking됨
+
+### 해결 방법
+- google stt에 `END_OF_SINGLE_UTTERANCE` 플래그가 있는데,  
+이게 `streaming_config`에서 `single_utterance=True`로 설정했을 때 발생한다고 함
+  - 말하기 시작 전: 스트림 시작 후 일정 시간(약 5~10초) 동안 **아무런 음성 활동이 없을 때** 발생
+  - 말하기 중/후: 사용자가 발화한 후 일정 시간 동안 **무음이 지속될 때** 발생
+- 이걸 활용하면 되겠다
+
+### 설계
+- `END_OF_SINGLE_UTTERANCE` 플래그는 말이 끝났음을 알려주는 이벤트 플래그이고,  
+`is_final=True`는 내용이 확정되었을 때 발생한다
+- 따라서 `END_OF_SINGLE_UTTERANCE` 플래그를 맞으면 chunk 생성만 중단시킨다(이때까지 말한거로만 최종 결과 받기)
+- `is_final=True`이면 thread를 종료하도록 한다
+
+>해결 완료

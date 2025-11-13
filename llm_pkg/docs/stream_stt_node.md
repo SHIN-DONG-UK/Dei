@@ -124,3 +124,6 @@ for response in responses:
 - `is_final=True`이면 thread를 종료하도록 한다
 
 >해결 완료
+
+## 한계
+- 한 문장만 들을 수 있음

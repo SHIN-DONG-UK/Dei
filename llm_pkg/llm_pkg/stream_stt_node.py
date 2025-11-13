@@ -264,6 +264,9 @@ class StreamSttNode(Node):
                         if result.is_final:
                             print("[최종 텍스트]:", result.alternatives[0].transcript)
                             stream.__exit__(None, None, None)
+                            msg = String()
+                            msg.data = result.alternatives[0].transcript
+                            self.stream_stt_publisher.publish(msg)
                             return
                         
             except Exception as e:

@@ -4,7 +4,8 @@
 - hotword('daya')를 subscribe하여 그 이후의 음성을 text로 변환하는 노드
 - 이 노드의 결과를 publish해서 llm의 입력으로 사용하도록 함
 
-## 문제 상황
+## 문제1
+### 상황
 - 'daya'가 subscribe되었을 때, 처음 한 번만 stt가 수행되고 그 이후로 daya를 subscribe하지 않음
 - stt부분을 주석처리하면 daya를 잘 subscribe함
 
@@ -83,6 +84,21 @@ for response in responses:
 - is_final flag를 맞으면 `__exit()__`을 호출해서 generator를 종료시키면 되지 않을까? => 정답
 
 
-## 문제 상황2
-- 'daya'를 반복 호출했을 때 stt가 중첩되는 문제 발생 -> 먹통
-- subscribe_daya가 진행되는 동안 'daya'가 들어오면 앞선 STT를 중단하고 새로 STT를 시작해야 함
+## 문제2
+### 상황
+- 'daya'를 반복 호출했을 때 STT가 중첩되는 문제 발생 -> 먹통
+  - 아마 마이크 리소스 충돌로 blocking되는게 아닐까?
+
+### 해결 방법
+- STT 실행 중 다시 'daya'가 들어오면  
+→ 기존 STT 루프를 즉시 중단하고  
+→ 새로 STT를 시작하도록 설계하자
+
+### 구현
+- `subscribe_daya()`에서 STT를 스레드로 실행하고,  
+'daya'가 들어오면 기존 스레드에 종료 신호를 보내고 새로 시작하는 방식으로 구현할 수 있다.
+
+### 설계
+- `stt_thread` -> STT 실행 스레드
+- `stt_stop_event` -> 기존 STT 중단 신호
+- `subscribe_daya()` -> hotword 수신, STT 스레드 제어

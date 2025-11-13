@@ -12,6 +12,7 @@ import sys
 from google.cloud import speech
 
 import pyaudio
+import threading
 
 # Audio recording parameters
 RATE = 16000
@@ -193,6 +194,9 @@ class StreamSttNode(Node):
             'hotword',
             self.subscribe_daya,
             qos_profile)
+        
+        self.stt_thread = None
+        self.stt_stop_event = threading.Event()
 
     """
     [설명]
@@ -200,40 +204,63 @@ class StreamSttNode(Node):
     """
     def subscribe_daya(self, msg):
         self.get_logger().info(f"Hotword received: {msg.data}")
-        if msg.data == 'daya':
-            text = String()
+        if msg.data != 'daya':
+            return
 
-            language_code = "ko-KR"
-            client = speech.SpeechClient()
-            config = speech.RecognitionConfig(
-                encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-                sample_rate_hertz=RATE,
-                language_code=language_code,
-                enable_automatic_punctuation=True,
+        # 기존에 STT가 실행중이면 중단
+        if self.stt_thread and self.stt_thread.is_alive():
+            self.get_logger().info("기존 STT 중단 중...")
+            self.stt_stop_event.set()
+            self.stt_thread.join()
+            self.get_logger().info("기존 STT 종료 완료")
+
+        # 새 이벤트 초기화 후 새 STT 시작
+        self.stt_stop_event = threading.Event()
+        self.stt_thread = threading.Thread(target=self.run_stt, args=(self.stt_stop_event,))
+        self.stt_thread.start()
+        self.get_logger().info("새 STT 시작")
+
+
+    def run_stt(self, stop_event):
+        language_code = "ko-KR"
+        client = speech.SpeechClient()
+        config = speech.RecognitionConfig(
+            encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+            sample_rate_hertz=RATE,
+            language_code=language_code,
+            enable_automatic_punctuation=True,
+        )
+
+        streaming_config = speech.StreamingRecognitionConfig(
+            config=config,
+            interim_results=True,
+            single_utterance=True,
+        )
+
+        with MicrophoneStream(RATE, CHUNK) as stream:
+            audio_generator = stream.generator()
+            requests = (
+                speech.StreamingRecognizeRequest(audio_content=content)
+                for content in audio_generator
             )
 
-            streaming_config = speech.StreamingRecognitionConfig(
-                config=config,
-                interim_results=True,
-                single_utterance=True,
-            )
+            responses = client.streaming_recognize(streaming_config, requests)
+            print("===음성 인식 시작===")
 
-            with MicrophoneStream(RATE, CHUNK) as stream:
-                audio_generator = stream.generator()
-                requests = (
-                    speech.StreamingRecognizeRequest(audio_content=content)
-                    for content in audio_generator
-                )
-
-                responses = client.streaming_recognize(streaming_config, requests)
-
-                print("== 음성 인식 시작 ==")
+            try:
                 for response in responses:
+                    if stop_event.is_set():
+                        stream.__exit__(None, None, None)
+                        break
+
                     for result in response.results:
                         print("실시간 텍스트:", result.alternatives[0].transcript)
                         if result.is_final:
                             print("최종 텍스트:", result.alternatives[0].transcript)
                             stream.__exit__(None, None, None)
+                            return
+            except Exception as e:
+                print("STT 중 오류:", e)
 
 
 def main(args=None):

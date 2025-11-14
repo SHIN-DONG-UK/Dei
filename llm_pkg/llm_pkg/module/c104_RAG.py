@@ -12,27 +12,10 @@ class C104_RAG():
         # 1. OpenAI API 키 설정 (환경변수에서 가져오기)
         openai_api_key = os.getenv("OPENAI_API_KEY")
         if not openai_api_key:
-<<<<<<< HEAD
-<<<<<<< HEAD
             raise ValueError("🔴 OpenAI API 키가 설정되지 않았습니다. 환경변수를 확인하세요.")
-        # ollamaLLM
+        
         self.llm = OllamaLLM(model="exaone-2.4b-4bit")
-        # ChromaDB 컬렉션 초기화
-        self.CHROMA_DB_PATH = "/home/god/integration_ws/src/llm_pkg/500_manuals_db"
-=======
-            raise ValueError("OpenAI API 키가 설정되지 않았습니다. 환경변수를 확인하세요.")
-        # ollamaLLM
-        self.llm = OllamaLLM(model="exaone-2.4b-4bit")
-        # ChromaDB 컬렉션 초기화
         self.CHROMA_DB_PATH = "/home/c104/S12P11C104/ros/src/AI/llm_pkg/rag_db"
->>>>>>> ros2
-=======
-            raise ValueError("OpenAI API 키가 설정되지 않았습니다. 환경변수를 확인하세요.")
-        # ollamaLLM
-        self.llm = OllamaLLM(model="exaone-2.4b-4bit")
-        # ChromaDB 컬렉션 초기화
-        self.CHROMA_DB_PATH = "/home/c104/S12P11C104/ros/src/AI/llm_pkg/rag_db"
->>>>>>> 961d28f (AI : vector store update)
         self.embedding_model = OpenAIEmbeddings(model="text-embedding-ada-002")
         self.vector_db = Chroma(persist_directory=self.CHROMA_DB_PATH, embedding_function=self.embedding_model)
         print("RAG 서비스 준비 완료!")

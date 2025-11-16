@@ -15,7 +15,6 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile
 from std_msgs.msg import String
 
-from ament_index_python.packages import get_package_share_directory
 
 
 AudioFrameCallback = Callable[[np.ndarray], None]
@@ -147,6 +146,10 @@ class SimpleMicStream(CustomAudioStream) :
                 frame_callback=frame_callback,
         )
 
+from pathlib import Path
+CURRENT_DIR = Path(__file__).resolve()
+SRC_DIR = CURRENT_DIR.parent.parent.parent
+
 class WakeupPublisher(Node):
     def __init__(self):
         """
@@ -162,14 +165,14 @@ class WakeupPublisher(Node):
         # self.publisher_user_command = self.create_publisher(String, 'user_command', 1)
         # self.timer_ = self.create_timer(0.1, self.timer_callback)
 
-        pkg_share_dir = get_package_share_directory('llm_pkg')
-        
+        print(SRC_DIR / "jsons" / "stop_ref.jsons")
+
         # efficientword net
         base_model = Resnet50_Arc_loss()
         stop_hw = HotwordDetector(
             hotword="stop",
             model=base_model,
-            reference_file = pkg_share_dir + '/jsons' + '/stop_ref.json',
+            reference_file = SRC_DIR / "jsons" / "stop_ref.json",
             threshold=0.71,
             relaxation_time=2,
             # verbose=True
@@ -178,7 +181,7 @@ class WakeupPublisher(Node):
         follow_hw = HotwordDetector(
             hotword="follow",
             model=base_model,
-            reference_file = pkg_share_dir + '/jsons' + '/follow_ref.json',
+            reference_file = SRC_DIR / "jsons" / "follow_ref.json",
             threshold=0.71,
             relaxation_time=2,
             # verbose=True
@@ -186,7 +189,7 @@ class WakeupPublisher(Node):
         come_hw = HotwordDetector(
             hotword="come",
             model=base_model,
-            reference_file = pkg_share_dir + '/jsons' + '/come_ref.json',
+            reference_file = SRC_DIR / "jsons" / "come_ref.json",
             threshold=0.71,
             relaxation_time=2,
             #verbose=True
@@ -194,7 +197,7 @@ class WakeupPublisher(Node):
         daya_hw = HotwordDetector(
             hotword="daya",
             model=base_model,
-            reference_file = pkg_share_dir + '/jsons' + '/daya_ref.json',
+            reference_file = SRC_DIR / "jsons" / "daya_ref.json",
             threshold=0.71,
             relaxation_time=2,
             #verbose=True

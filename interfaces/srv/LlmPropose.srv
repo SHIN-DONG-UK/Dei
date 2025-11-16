@@ -1,7 +1,0 @@
-string[] devices
-float32 temp
-float32 humi
-float32 opti_temp
-float32 opti_humi
----
-string message

@@ -142,7 +142,7 @@ class LLMNode(Node):
         input = prompt.format(input_text=msg.data)
         result = chain.invoke(input)
 
-        # 2. JSON 생성
+        # 2. JSON or 텍스트 생성
         if result == 'qna_iot':
             print(result)
             # RAG 기반 답변
@@ -152,7 +152,12 @@ class LLMNode(Node):
             )
 
             output = self.engine.generate_rag_response(prompt, msg.data)
+
             print(output)
+
+            msg = String()
+            msg.data = output
+            self.string_publisher.publish(msg)
             
         elif result == 'qna_general':
             print(result)
@@ -164,7 +169,12 @@ class LLMNode(Node):
 
             chain = prompt | self.llm
             output = chain.invoke(msg.data)
+
             print(output)
+
+            msg = String()
+            msg.data = output
+            self.string_publisher.publish(output)
 
         elif result == 'control':
             print(result)
@@ -181,16 +191,23 @@ class LLMNode(Node):
 
             print(result)
 
+            msg = String()
+            msg.data = result
+            self.json_publisher.publish(result)
+
         else:
             print(result)
             # 적당한 답변 생성해서 말하기
+            msg = String()
+            msg.data = "이런 질문은 아직 처리할 수 없어요. 다른 질문을 해주세요."
+            self.string_publisher.publish(msg)
 
 
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node = LLMResultPublisher()
+    node = LLMNode()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:

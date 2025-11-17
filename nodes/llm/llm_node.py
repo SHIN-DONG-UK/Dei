@@ -104,12 +104,13 @@ from pathlib import Path
 CURRENT_DIR = Path(__file__).resolve()
 SRC_DIR = CURRENT_DIR.parent.parent.parent
 
-class LLMResultPublisher(Node):
+class LLMNode(Node):
 
     def __init__(self):
-        super().__init__('llmresult_publisher')
+        super().__init__('llm_node')
         qos_profile = QoSProfile(depth=10)
-        self.textToJSON_publisher = self.create_publisher(String, 'llm_result', qos_profile)
+        self.string_publisher = self.create_publisher(String, 'llm_result', qos_profile)
+        self.json_publisher = self.create_publisher(String, 'llm_json', qos_profile)
         self.stt_subscription = self.create_subscription(
             String,
             'stt_stream',

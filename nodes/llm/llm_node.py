@@ -100,6 +100,9 @@ class RAGEngine():
     def stop(self):
         self.llm.stop()
 
+from pathlib import Path
+CURRENT_DIR = Path(__file__).resolve()
+SRC_DIR = CURRENT_DIR.parent.parent.parent
 
 class TextToJSONPublisher(Node):
 
@@ -115,115 +118,17 @@ class TextToJSONPublisher(Node):
         self.engine = RAGEngine('exaone3.5:2.4b', '/home/god/robot_ws/src/resource/rag_db')
         self.llm = OllamaLLM(model='exaone3.5:2.4b')
         
-        self.template_classifier = """
-        당신의 임무는 사용자의 입력을 네 가지 중 하나로 분류하는 것입니다.
+        with open(SRC_DIR / 'resource' / 'template' / 'template_classifier.txt', 'r', encoding='utf-8') as f:
+            self.template_classifier = f.read()
 
-        [출력 규칙]
-        - 오직 다음 중 하나만 출력해야 합니다.
-        - qna_iot
-        - qna_general
-        - control
-        - error
-        - 다른 문구, 설명, 이유, 따옴표는 절대 출력하지 마세요.
+        with open(SRC_DIR / 'resource' / 'template' / 'template_rag.txt', 'r', encoding='utf-8') as f:
+            self.template_rag = f.read()
 
-        [분류 규칙]
-
-        1. qna_iot  
-        - 사용자가 집 내부의 IoT 기기, 스마트홈 기기, 센서, 가전제품 등에 대한 정보를 질문하는 경우  
-        - 예:
-            - "우리 집 온도 센서가 어떻게 작동해?"
-            - "IoT 에어컨 자동모드가 뭐야?"
-            - "스마트락 배터리는 얼마나 가?"
-
-        2. qna_general  
-        - 일반 지식/설명/정보를 요청하는 경우
-        - IoT 기기 및 스마트홈과 무관한 질문
-        - 예:
-            - "세종대왕은 누구야?"
-            - "광합성이 뭐야?"
-            - "로마 제국 역사를 알려줘"
-
-        3. control  
-        - 장치 또는 시스템의 행동을 요구하는 명령
-        - IoT 기기 제어 포함
-        - 예:
-            - "불 켜"
-            - "에어컨 꺼"
-            - "문 열어줘"
-            - "TV 볼륨 올려"
-
-        4. error  
-        - 위 세가지 중 어디에도 명확히 속하지 않는 경우
-        - 잡담, 감정 표현, 상태 묻기
-        - 예:
-            - "기분 어때?"
-            - "너 누구야?"
-            - "고마워"
-
-        [중요]
-        - 절대 질문에 대답하지 마세요.
-        - 당신은 '분류기'이며, 입력을 분류하는 것 외에 아무것도 해서는 안 됩니다.
-
-        [예시]
-        입력: "세종대왕에 대해 알려줘" → qna_general
-        입력: "에어컨 필터는 어떻게 관리해?" → qna_iot
-        입력: "전등 켜줘" → control
-        입력: "오늘 기분 좋다" → error
-
-        이제 아래 입력을 분류하세요.
-        입력: "{input_text}"
-        """
-
-        self.template_rag = """
-        당신은 스마트홈 AI 비서입니다. 제공된 문서 내용(context)만 참고하여 답변하세요.
-
-        규칙:
-        - 문서 내용만 사용하고, 외부 지식은 사용하지 마세요.
-        - 사용자가 IoT 기기 제어 또는 문제 해결을 물으면 단계별로 안내하세요.
-        - 문서에 답이 없으면 "제공된 문서 내에서는 알 수 없습니다."라고 답하세요.
-        - 문서에 없는 기기 기능을 추측하거나 만들어내지 마세요.
-
-        [문서 내용]
-        {context}
-
-        [사용자 질문]
-        {query}
-
-        [답변]
-        """
-
-        self.template_general = """
-        당신은 스마트홈 AI 비서입니다. 사용자의 질문에 정확하고 구체적이지만 너무 길지 않게 답변하세요.
+        with open(SRC_DIR / 'resource' / 'template' / 'template_general.txt', 'r', encoding='utf-8') as f:
+            self.template_general = f.read()
         
-        규칙:
-        - 답변을 세 문장으로 요약하세요.
-        - 더 궁굼한 사항이 있으면 구체적으로 질문해달라고 하세요.
-
-        [사용자 질문]
-        {query}
-
-        [답변]
-        """
-
-        self.template_control = """
-        당신은 스마트홈 제어 AI입니다. 사용자가 입력한 제어 명령을 JSON으로 반환하세요.
-
-        규칙:
-        1. 사용자가 제어할 수 있는 기기는 아래 리스트에만 해당됩니다.  
-        2. 리스트에 없는 기기는 제어할 수 없으므로 device와 command, value 모두 null로 설정하세요.
-        3. 제어 명령이 값(예: 온도, 채널, 밝기)을 포함하면 value에 숫자 또는 문자열로 넣어주세요.
-        4. 항상 JSON 형식으로 출력하세요. 백틱이나 마크다운은 사용하지 마세요.
-
-        제어 가능한 기기 목록:
-        {device_list}
-
-        사용자 입력:
-        {user_input}
-
-        출력 형식 예시:
-        {{"device": "<기기 이름 또는 null>", "command": "<명령 또는 null>", "value": "<값 또는 null>"}}
-
-        """
+        with open(SRC_DIR / 'resource' / 'template' / 'template_control.txt', 'r', encoding='utf-8') as f:
+            self.template_control = f.read()
 
     def subscribe_stt(self, msg):
         self.get_logger().info(f"stt received: {msg.data}")

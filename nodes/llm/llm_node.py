@@ -115,7 +115,7 @@ class TextToJSONPublisher(Node):
             'stt_stream',
             self.subscribe_stt,
             qos_profile)
-        self.engine = RAGEngine('exaone3.5:2.4b', '/home/god/robot_ws/src/resource/rag_db')
+        self.engine = RAGEngine('exaone3.5:2.4b', SRC_DIR / 'resource' / 'rag_db')
         self.llm = OllamaLLM(model='exaone3.5:2.4b')
         
         with open(SRC_DIR / 'resource' / 'template' / 'template_classifier.txt', 'r', encoding='utf-8') as f:

@@ -116,7 +116,7 @@ class LLMNode(Node):
             'stt_stream',
             self.subscribe_stt,
             qos_profile)
-        self.engine = RAGEngine('exaone3.5:2.4b', SRC_DIR / 'resource' / 'rag_db')
+        self.engine = RAGEngine('exaone3.5:2.4b', str(SRC_DIR / 'resource' / 'rag_db'))
         self.llm = OllamaLLM(model='exaone3.5:2.4b')
         
         with open(SRC_DIR / 'resource' / 'template' / 'template_classifier.txt', 'r', encoding='utf-8') as f:
@@ -155,9 +155,9 @@ class LLMNode(Node):
 
             print(output)
 
-            msg = String()
-            msg.data = output
-            self.string_publisher.publish(msg)
+            pub = String()
+            pub.data = output
+            self.string_publisher.publish(pub)
             
         elif result == 'qna_general':
             print(result)
@@ -172,9 +172,9 @@ class LLMNode(Node):
 
             print(output)
 
-            msg = String()
-            msg.data = output
-            self.string_publisher.publish(output)
+            pub = String()
+            pub.data = output
+            self.string_publisher.publish(pub)
 
         elif result == 'control':
             print(result)
@@ -191,18 +191,16 @@ class LLMNode(Node):
 
             print(result)
 
-            msg = String()
-            msg.data = result
-            self.json_publisher.publish(result)
+            pub = String()
+            pub.data = result
+            self.json_publisher.publish(pub)
 
         else:
             print(result)
             # 적당한 답변 생성해서 말하기
-            msg = String()
-            msg.data = "이런 질문은 아직 처리할 수 없어요. 다른 질문을 해주세요."
-            self.string_publisher.publish(msg)
-
-
+            pub = String()
+            pub.data = "이런 질문은 아직 처리할 수 없어요. 다른 질문을 해주세요."
+            self.string_publisher.publish(pub)
 
 
 def main(args=None):

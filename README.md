@@ -12,6 +12,9 @@
 
 <img src="resource/images/hotword+stt+llm.gif">
 
+### rqt_graph
+<img src="./resource/images/all_graph.png">
+
 # 환경 설정
 ## 1. wakeup_node
 >#### ⚠️ 순서대로 설치해야 함

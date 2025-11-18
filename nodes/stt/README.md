@@ -1,8 +1,11 @@
 # stream_stt_node
 
-## 설명
+### 설명
 - hotword('daya')를 subscribe하여 그 이후의 음성을 text로 변환하는 노드
 - 이 노드의 결과를 publish해서 llm의 입력으로 사용하도록 함
+
+### rqt_graph
+<img src="../../resource/images/stt_graph.png">
 
 ## 문제1
 ### 상황

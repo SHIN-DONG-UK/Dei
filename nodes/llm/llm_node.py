@@ -131,6 +131,10 @@ class LLMNode(Node):
         with open(SRC_DIR / 'resource' / 'template' / 'template_control.txt', 'r', encoding='utf-8') as f:
             self.template_control = f.read()
 
+        with open(SRC_DIR / 'resource' / 'template' / 'template_error.txt', 'r', encoding='utf-8') as f:
+            self.template_error = f.read()
+
+
     def subscribe_stt(self, msg):
         self.get_logger().info(f"stt received: {msg.data}")
         # 1. 분류기
@@ -198,8 +202,18 @@ class LLMNode(Node):
         else:
             print(result)
             # 적당한 답변 생성해서 말하기
+            prompt = PromptTemplate(
+            input_variables=["user_input}"],
+            template=self.template_error
+            )
+            chain = prompt | self.llm
+            input = prompt.format(user_input=msg.data)
+            result = chain.invoke(input)
+
+            print(result)
+
             pub = String()
-            pub.data = "이런 질문은 아직 처리할 수 없어요. 다른 질문을 해주세요."
+            pub.data = result
             self.string_publisher.publish(pub)
 
 

@@ -3,7 +3,9 @@
 ## 프로젝트 의도
 이미 컴퓨팅 파워를 갖춘 로봇청소기에 집사 기능을 추가하면 괜찮지 않을까? 하는 생각으로부터 해당 프로젝트를 시작하게 되었습니다. Jeton Orin nano 보드에 로봇청소기 기능과 AI 기능을 통합하고자 했습니다.
 
-## AI 파트 시연 영상
+본 레포지토리에는 로봇 집사의 AI 파트만 정리되어 있습니다.
+
+## AI 파트
 ### Hotword + STT 노드 연계
 
 <img src="resource/images/hotword+stt.gif">
@@ -15,84 +17,43 @@
 ### rqt_graph
 <img src="./resource/images/all_graph.png">
 
-# 환경 설정
-## 1. wakeup_node
->#### ⚠️ 순서대로 설치해야 함
+<br>
 
-#### 1-1. pyaudio
+## 시나리오
+
+## 노드별 설명
+
+## 설치 방법
+### 1. src 폴더 생성 후 git clone
 ```bash
-sudo apt-get install portaudio19-dev python3-dev
-pip install pyaudio
+git clone https://github.com/SHIN-DONG-UK/Dei.git
 ```
 
-#### 1-2. tflite-runtime
+### 2. 노드별 python 가상환경 구축
+#### 2-1. src 폴더와 같은 레벨에 envs 폴더 생성
+#### 2-2. envs안에 다음 가상환경 생성
+#### 2-3. hotword  
+  ```bash
+  python3 -m venv hotword_venv
+  pip install -r ../src/nodes/hotword/requirements.txt
+  ```
+#### 2-4. stt  
+  ```bash
+  python3 -m venv stt_venv
+  pip install -r ../src/nodes/stt/requirements.txt
+  ```
+#### 2-5. llm  
+  ```bash
+  python3 -m venv llm_venv
+  pip install -r ../src/nodes/llm/requirements.txt
+  ```
+#### 2-6. tts
+  ```bash
+  python3 -m venv tts_venv
+  pip install -r ../src/nodes/tts/requirements.txt
+  ```
 
-```bash
-pip install tflite-runtime
-```
-
-#### 1-3. EfficientWord-Net
-
-```bash
-pip install EfficientWord-Net
-```
-
-#### 1-4. 기본 설치된 numpy uninstall하고 다시 깔아야 함
-
-```bash
-pip uninstall numpy -y
-pip install numpy
-```
-
-## 2. stream_stt_node
-해당 노드의 의존성을 해결하기 위해 다음 과정을 거쳐야 합니다.
-
-1. <a href="https://accounts.google.com/v3/signin/confirmidentifier?saml_hint=1&authuser=0&continue=https%3A%2F%2Fconsole.cloud.google.com%2Fproject&dsh=S438455572%3A1763113645367577&followup=https%3A%2F%2Fconsole.cloud.google.com%2Fproject&ifkv=ARESoU0YJlr0YbuylgAVE9YHHIrJxzy0cFl7mjaeEl0mm3awSTVI9LghoVQ2S_iBZpf3PNPkvCGw3w&osid=1&passive=1209600&service=cloudconsole&flowName=GlifWebSignIn&flowEntry=ServiceLogin">Select or create a Cloud Platform project.</a>
-2. <a href="https://cloud.google.com/billing/docs/how-to/modify-project?_gl=1*rk3mtr*_ga*ODc2MTM1NDMxLjE3NjI3NjA3MjQ.*_ga_WH2QY8WWF5*czE3NjMxMTM0NTgkbzEwJGcxJHQxNzYzMTEzNzAxJGo0JGwwJGgw&hl=ko#enable_billing_for_a_project">Enable billing for your project.</a>
-3. <a href="https://cloud.google.com/speech-to-text/docs?_gl=1*rk3mtr*_ga*ODc2MTM1NDMxLjE3NjI3NjA3MjQ.*_ga_WH2QY8WWF5*czE3NjMxMTM0NTgkbzEwJGcxJHQxNzYzMTEzNzAxJGo0JGwwJGgw&hl=ko">Enable the Cloud Speech. </a>
-4. <a href="https://googleapis.dev/python/google-api-core/latest/auth.html">Set up Authentication.</a>
-
-그리고 다음 패키지를 설치합니다.
-
-```bash
-pip install google-cloud-speech
-```
-
-### 3. llm & RAG
-
-```bash
-pip install langchain langchain_ollama langchain_community langchain_openai
-```
-
-```bash
-pip install chromadb
-```
-
-## 3. llm_pkg/llm_pkg/polling_node
-### 설명
-- 주기적으로 서버에 접근하여 온습도 센서 데이터 취득
-- offset을 벗어난 경우, 최적 루틴 생성
-- 해당 루틴으로 제어할 것인지 사용자에게 질문
-- 응답에 대한 동작 실행
-
-### 의존성 패키지
-- langchain
-```shell
-pip install langchain langchain_ollama
-```
-
-- openai
-```shell
-pip install openai
-```
-
-### 경로 수정
-- C104_Tts()의 speak 함수 : 아래 경로 수정
-```
-file_path = "/home/god/integration_ws/src/llm_pkg/audio/tts.mp3"
-```
-
-# 환경변수 설정
+## 환경변수 설정
 ### python-dotenv 설치
 ```shell
 pip install python-dotenv   

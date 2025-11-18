@@ -35,21 +35,25 @@ git clone https://github.com/SHIN-DONG-UK/Dei.git
 #### 2-3. hotword  
   ```bash
   python3 -m venv hotword_venv
+  source hotword_env/bin/activate
   pip install -r ../src/nodes/hotword/requirements.txt
   ```
 #### 2-4. stt  
   ```bash
   python3 -m venv stt_venv
+  source stt_venv/bin/activate
   pip install -r ../src/nodes/stt/requirements.txt
   ```
 #### 2-5. llm  
   ```bash
   python3 -m venv llm_venv
+  source llm_venv/bin/activate
   pip install -r ../src/nodes/llm/requirements.txt
   ```
 #### 2-6. tts
   ```bash
   python3 -m venv tts_venv
+  source tts_venv/bin/activate
   pip install -r ../src/nodes/tts/requirements.txt
   ```
 

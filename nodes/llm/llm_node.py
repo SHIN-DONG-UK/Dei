@@ -11,8 +11,6 @@ import os
 from dotenv import load_dotenv
 import json, re
 
-DEVICE = ["TV", "에어컨"]
-
 class RAGEngine():
     def __init__(self, model_name, chroma_path):
 
@@ -184,12 +182,11 @@ class LLMNode(Node):
             print(result)
             # 제어 명령 수행
             prompt = PromptTemplate(
-                input_variables=["device_list", "user_input"],
+                input_variables=["user_input"],
                 template=self.template_control
             )
             chain = prompt | self.llm
             result = chain.invoke({
-                "device_list": ", ".join(DEVICE), 
                 "user_input": msg.data
             })
 

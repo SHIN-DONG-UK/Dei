@@ -4,6 +4,9 @@
 - wakeup_node는 지정된 hotword(예: 데이야, 이리와, 따라와, 멈춰)가 호출되면 해당 단어를 publish하도록 설계된 노드임
 - 이를 다른 패키지에서 subscirbe해서 트리거로 사용하도록 하는 노드
 
+### rqt_graph
+<img src="../../resource/images/hotword_graph.png">
+
 ### 구현 방법1: timer_callback
 - 20ms마다 inference하도록 설계
 - 이렇게 했을 때 인식 성능이 좋지 않았음

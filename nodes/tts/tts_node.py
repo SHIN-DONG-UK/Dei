@@ -68,3 +68,17 @@ class TTSNode(Node):
 
         t = threading.Thread(target=_play_sound)
         t.start()
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = TTSNode()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info('Keyboard Interrupt (SIGINT)')
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == "__main__":
+    main()

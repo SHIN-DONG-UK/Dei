@@ -13,6 +13,11 @@ from google.cloud import speech
 
 import pyaudio
 import threading
+import playsound
+
+from pathlib import Path
+CURRENT_DIR = Path(__file__).resolve()
+SRC_DIR = CURRENT_DIR.parent.parent.parent
 
 # Audio recording parameters
 RATE = 16000
@@ -219,6 +224,9 @@ class StreamSttNode(Node):
         self.stt_thread = threading.Thread(target=self.run_stt, args=(self.stt_stop_event,))
         self.stt_thread.start()
         self.get_logger().info("새 STT 시작")
+        
+        # answer.mp3 실행
+        playsound(SRC_DIR / 'audio' / 'answer.mp3')
 
 
     def run_stt(self, stop_event):

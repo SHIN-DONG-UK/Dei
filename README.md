@@ -1,5 +1,16 @@
 # 인공지능 로봇 집사 Dei
 
+## 프로젝트 의도
+이미 컴퓨팅 파워를 갖춘 로봇청소기에 집사 기능을 추가하면 괜찮지 않을까? 하는 생각으로부터 해당 프로젝트를 시작하게 되었습니다. Jeton Orin nano 보드에 로봇청소기 기능과 AI 기능을 통합하고자 했습니다.
+
+## AI 파트 시연 영상
+### Hotword + STT 노드 연계
+
+<img src="resource/images/hotword+stt.gif">
+
+### Hotword + STT + LLM 노드 연계
+
+<img src="resource/images/hotword+stt+llm.gif">
 
 # 환경 설정
 ## 1. wakeup_node
@@ -81,7 +92,7 @@ file_path = "/home/god/integration_ws/src/llm_pkg/audio/tts.mp3"
 # 환경변수 설정
 ### python-dotenv 설치
 ```shell
-pip install python-dotenv
+pip install python-dotenv   
 ```
 
 ### 사용 방법

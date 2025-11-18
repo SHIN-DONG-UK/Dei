@@ -58,6 +58,7 @@ class ControlExectueNode(Node):
             self.subscribe_json,
             qos_profile
         )
+        self.tts_request_publisher = self.create_publisher(String, 'tts_control', qos_profile)
     
     def subscribe_json(self, msg):
         self.get_logger().info('Received message: {0}'.format(msg.data))
@@ -75,10 +76,14 @@ class ControlExectueNode(Node):
         func = CONTROL_TABLE.get(device, {}).get(command)
         if func:
             func(value) if value else func()
-            # 적당한 음성 요청
+            pub = String()
+            pub.data = "요청이 완료되었습니다."
+            self.tts_request_publisher.publish(pub)
         else:
             print("해당 디바이스를 제어할 수 없음!")
-            # 적당한 음성 요청
+            pub = String()
+            pub.data = "해당 디바이스를 제어할 수 없습니다."
+            self.tts_request_publisher.publish(pub)
     
     def _normalize_command(raw_action: str) -> str:
         raw = raw_action.lower().replace(" ", "").replace("-", "_")

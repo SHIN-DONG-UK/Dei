@@ -102,8 +102,14 @@
 ```
 
 ## 구현
+### 1. 이동 명령
+<img src="./resource/images/구현1.png">
 
+### 2. 음성 IoT 제어 명령
+<img src="./resource/images/구현2.png">
 
+### 3. 가전제품 QnA
+<img src="./resource/images/구현3.png">
 
 ## 설치 방법
 ### 1. src 폴더 생성 후 git clone
@@ -175,3 +181,5 @@ export OPENAI_API_KEY="your"
 export SMARTTHINGS_API_TOKEN="your"
 export DEVICE_ID="your"
 ```
+
+## 실행 방법
